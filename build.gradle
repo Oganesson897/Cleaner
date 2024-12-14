@@ -110,6 +110,9 @@ repositories {
 }
 
 dependencies {
+    embed 'commons-io:commons-io:2.18.0'
+    embed 'org.projectlombok:lombok:1.18.34'
+
     if (propertyBool('use_modern_java_syntax')) {
         annotationProcessor 'com.github.bsideup.jabel:jabel-javac-plugin:1.0.0'
         // Workaround for https://github.com/bsideup/jabel/issues/174

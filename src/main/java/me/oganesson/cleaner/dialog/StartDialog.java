@@ -1,4 +1,7 @@
-package me.oganesson.cleaner;
+package me.oganesson.cleaner.dialog;
+
+import me.oganesson.cleaner.CleanLauncher;
+import me.oganesson.cleaner.net.CleanroomGetter;
 
 import javax.swing.*;
 
@@ -13,10 +16,12 @@ public class StartDialog extends JDialog {
         JButton action = new JButton("Clean instance with Last Build");
         last.addActionListener(e -> {
             CleanLauncher.cleanable = true;
+            CleanLauncher.version = CleanroomGetter.getLastReleaseVersion();
             dispose();
         });
         action.addActionListener(e -> {
             CleanLauncher.cleanable = true;
+            CleanLauncher.version = CleanroomGetter.getLastActionVersion();
             dispose();
         });
         panel.add(last);
