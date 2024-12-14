@@ -2,6 +2,7 @@ package me.oganesson.cleaner.net;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import me.oganesson.cleaner.utils.UnzipUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,64 +12,101 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.ZipFile;
 
 public class CleanroomGetter {
 
     static final Logger LOGGER = LogManager.getLogger("Cleaner");
     static final Gson GSON = new GsonBuilder().create();
 
-    public static void downloadCleanroomJar(String version, String path) {
-        File file = new File(path, String.format("cleanroom-%s-universal.jar", version));
+    public static void downloadCleanroomMMC(String version, String path) {
+        File file = new File(path, String.format("CleanroomMMC-%s.zip", version));
         if (file.mkdirs()) {
             if (version.contains("build")) {
-                String pathHead = "https://nightly.link/CleanroomMC/Cleanroom/workflows/BuildTest/experimental%2Ffoundation/universal-" + version + ".zip";
-                try {
-                    File cache = new File(file.getParent(), "cache.zip");
-                    FileUtils.copyURLToFile(URI.create(pathHead).toURL(), cache);
-                    try (ZipFile zipFile = new ZipFile(cache)) {
-                        zipFile.stream().forEach(entry -> {
-                            try {
-                                try (InputStream inputStream = zipFile.getInputStream(entry)) {
-                                    Files.copy(inputStream, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                                }
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                        cache.delete();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } catch (IOException e) {throw new RuntimeException(e);}
+                processActionCRMMC(file);
             } else {
                 try {
-                    var c = get(URI.create("https://api.github.com/repos/CleanroomMC/Cleanroom/releases/latest").toURL());
-                    Map<String, Object> map = (Map<String, Object>) GSON.fromJson(c, Map.class);
-                    ((List<Map<String, Object>>) map.get("assets")).forEach(entries -> {
-                        if (entries.get("name").toString().contains("universal.jar")) {
-                            try {
-                                FileUtils.copyURLToFile(new URL(entries.get("browser_download_url").toString()), file);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    });
-                } catch (MalformedURLException e) {
-                    throw new RuntimeException(e);
+                    String url = getLastReleaseURL();
+                    FileUtils.copyURLToFile(URI.create(url).toURL(), file);
+                } catch (IOException e) {throw new RuntimeException(e);}
+            }
+        }
+
+        UnzipUtil.unzip(file.getPath(), path);
+    }
+
+    public static String getLastReleaseURL() {
+        try {
+            var map = get(new URL("https://api.github.com/repos/CleanroomMC/Cleanroom/releases/latest"));
+            var assets = (List<Map<String, Object>>) map.get("assets");
+            for (Map<String, Object> entries : assets) {
+                if (((String) entries.get("name")).contains("Cleanroom-MMC")) {
+                    return (String) entries.get("browser_download_url");
                 }
             }
+            return "";
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void processActionCRMMC(File target) {
+        try {
+            var map = get(new URL("https://api.github.com/repos/CleanroomMC/CleanroomMMC/actions/artifacts"));
+            var artifacts = (List<Map<String, Object>>) map.get("artifacts");
+            var urlString = (String) artifacts.get(1).get("archive_download_url");
+
+            HttpURLConnection connection = null;
+            InputStream inputStream = null;
+            BufferedInputStream bufferedInputStream = null;
+            FileOutputStream fileOutputStream = null;
+
+            var token = "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";
+
+            try {
+                URL url = new URL(urlString);
+
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Accept", "application/vnd.github+json");
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+                connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+
+                int statusCode = connection.getResponseCode();
+                if (statusCode == 200) {
+                    inputStream = connection.getInputStream();
+                    bufferedInputStream = new BufferedInputStream(inputStream);
+                    fileOutputStream = new FileOutputStream(target);
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = bufferedInputStream.read(buffer)) != -1) {
+                        fileOutputStream.write(buffer, 0, bytesRead);
+                    }
+
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    if (bufferedInputStream != null) bufferedInputStream.close();
+                    if (fileOutputStream != null) fileOutputStream.close();
+                    if (connection != null) connection.disconnect();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
         }
     }
 
     public static String getLastReleaseVersion() {
         try {
-            var c = get(new URL("https://api.github.com/repos/CleanroomMC/Cleanroom/releases/latest"));
-            Map<String, Object> map = (Map<String, Object>) GSON.fromJson(c, Map.class);
+            var map = get(new URL("https://api.github.com/repos/CleanroomMC/Cleanroom/releases/latest"));
             return (String) map.get("name");
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
@@ -77,14 +115,15 @@ public class CleanroomGetter {
 
     public static String getLastActionVersion() {
         try {
-            var c = get(new URL("https://nightly.link/CleanroomMC/Cleanroom/workflows/BuildTest/experimental%2Ffoundation"));
-            return extractVersion(c);
+            var map = get(new URL("https://api.github.com/repos/CleanroomMC/Cleanroom/actions/artifacts"));
+            var artifacts = (List<Map<String, Object>>) map.get("artifacts");
+            return ((String) artifacts.get(1).get("name")).replace("universal-", "");
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static String get(URL url) {
+    private static Map<String, Object> get(URL url) {
         try {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
@@ -98,27 +137,13 @@ public class CleanroomGetter {
                     content.append(inputLine);
                 }
                 reader.close();
-                String contentString = content.toString();
-                return contentString;
+                return (Map<String, Object>) GSON.fromJson(content.toString(), Map.class);
             }
             connection.disconnect();
         } catch (Exception e) {
             LOGGER.warn("Check internet connect! nightly.link cannot access!");
         }
-        return "";
-    }
-
-    private static String extractVersion(String htmlContent) {
-        String title = "";
-        String titleTagStart = "<tr><th><a rel=\"nofollow\" href=\"https://nightly.link/CleanroomMC/Cleanroom/workflows/BuildTest/experimental%2Ffoundation/universal-";
-        String titleTagEnd = "\">universal-";
-        int startIndex = htmlContent.indexOf(titleTagStart);
-        int endIndex = htmlContent.indexOf(titleTagEnd);
-
-        if (startIndex != -1 && endIndex != -1) {
-            title = htmlContent.substring(startIndex + titleTagStart.length(), endIndex);
-        }
-        return title.replace("%2B", "+");
+        return new HashMap<>();
     }
 
 }

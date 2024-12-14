@@ -25,6 +25,7 @@ public class StartDialog extends JDialog {
             dispose();
         });
         panel.add(last);
+        panel.add(action);
         add(panel);
     }
 
