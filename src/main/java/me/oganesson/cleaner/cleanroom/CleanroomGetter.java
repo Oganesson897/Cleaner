@@ -1,8 +1,10 @@
-package me.oganesson.cleaner.net;
+package me.oganesson.cleaner.cleanroom;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import me.oganesson.cleaner.cleanroom.cache.CleanroomCache;
 import me.oganesson.cleaner.utils.UnzipUtil;
+import net.minecraftforge.fml.common.LoaderException;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,22 +24,36 @@ public class CleanroomGetter {
     static final Gson GSON = new GsonBuilder().create();
 
     public static void downloadCleanroomMMC(String version, String path) {
-        File file = new File(path, String.format("CleanroomMMC-%s.zip", version));
-        if (file.mkdirs()) {
-            if (version.contains("build")) {
-                processActionCRMMC(file);
-            } else {
-                try {
-                    String url = getLastReleaseURL();
-                    FileUtils.copyURLToFile(URI.create(url).toURL(), file);
-                } catch (IOException e) {throw new RuntimeException(e);}
+        File file = CleanroomCache.checkCache(version);
+        File mmc = new File(path, String.format("CleanroomMMC-%s.zip", version));
+        if (file == null) {
+            if (file.mkdirs()) {
+                if (version.contains("build")) {
+                    processActionCRMMC(file);
+                } else {
+                    try {
+                        String url = processReleaseCRMMC();
+                        FileUtils.copyURLToFile(URI.create(url).toURL(), file);
+                    } catch (IOException e) {throw new RuntimeException(e);}
+                }
+            }
+            try {
+                CleanroomCache.tryToSave(version, mmc);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            try {
+                FileUtils.copyFile(file, mmc);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
-
         UnzipUtil.unzip(file.getPath(), path);
+        mmc.delete();
     }
 
-    public static String getLastReleaseURL() {
+    public static String processReleaseCRMMC() {
         try {
             var map = get(new URL("https://api.github.com/repos/CleanroomMC/Cleanroom/releases/latest"));
             var assets = (List<Map<String, Object>>) map.get("assets");
