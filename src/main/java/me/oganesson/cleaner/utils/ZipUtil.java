@@ -4,7 +4,7 @@ import java.io.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-public class UnzipUtil {
+public class ZipUtil {
 
     public static void unzip(String zipFilePath, String destDir) {
         File destDirectory = new File(destDir);
