@@ -42,7 +42,29 @@ public class CleanroomGetter {
             var map = get(new URL("https://api.github.com/repos/CleanroomMC/Cleanroom/releases/" + tag));
             var assets = (List<Map<String, Object>>) map.get("assets");
             for (Map<String, Object> entries : assets) {
-                result.put((String) entries.get("name"), (String) entries.get("browser_download_url"));
+                String name = (String) entries.get("name");
+                if (name.contains("installer")) {
+                    result.put("installer.jar", (String) entries.get("browser_download_url"));
+                }
+                else if (name.contains("sources")) {
+                    result.put("sources.jar", (String) entries.get("browser_download_url"));
+                }
+                else if (name.contains("universal")) {
+                    result.put("universal.jar", (String) entries.get("browser_download_url"));
+                }
+                else if (name.contains("userdev.jar")) {
+                    result.put("userdev.jar", (String) entries.get("browser_download_url"));
+                }
+                else if (name.contains("userdev-temp")) {
+                    result.put("userdev-temp.jar", (String) entries.get("browser_download_url"));
+                }
+                 else if (name.contains("MMC")) {
+                    result.put("CleanroomMMC.zip", (String) entries.get("browser_download_url"));
+                }
+                 else {
+                    result.put("cleanroom.jar", (String) entries.get("browser_download_url"));
+                }
+
             }
             return result;
         } catch (MalformedURLException e) {

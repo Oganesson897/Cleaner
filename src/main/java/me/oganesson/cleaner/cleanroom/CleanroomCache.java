@@ -1,6 +1,8 @@
 package me.oganesson.cleaner.cleanroom;
 
+import me.oganesson.cleaner.Cleaner;
 import me.oganesson.cleaner.ConfigHolder;
+import me.oganesson.cleaner.utils.LogUtil;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,11 +39,12 @@ public class CleanroomCache {
     @Nullable
     public static File read(String version, String name) {
         if (cacheDirFile.isDirectory()) {
-            var cache = new File(Paths.get(Paths.get(System.getProperty("user.home"), ".cleanroom", "cache").toString(), version, String.format(name, version)).toUri());
+            var cache = new File(Paths.get(Paths.get(System.getProperty("user.home"), ".cleanroom", "cache").toString(), version, name).toUri());
             if (cache.exists()) {
                 return cache;
             }
         }
+        LogUtil.LOGGER.warn("Cache not found for version: {}", version);
         return null;
     }
 
@@ -49,6 +52,7 @@ public class CleanroomCache {
         if (cacheDirFile.isDirectory()) {
             var cache = new File(Paths.get(Paths.get(System.getProperty("user.home"), ".cleanroom", "cache").toString(), version, name).toUri());
             FileUtils.copyURLToFile(url, cache);
+            LogUtil.LOGGER.info("Saved {} - {} to cache", version, name);
         }
     }
 

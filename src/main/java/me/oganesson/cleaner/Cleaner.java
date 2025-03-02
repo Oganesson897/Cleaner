@@ -27,6 +27,7 @@ public class Cleaner implements IFMLLoadingPlugin, IFMLCallHook {
         if (EnvCheckUtil.isCleanroom()) {
             // Mod download TODO
         } else {
+            //Prism
             PrismLauncherCleaner.clean(mcLocation);
         }
 

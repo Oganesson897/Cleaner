@@ -2,8 +2,6 @@ package me.oganesson.cleaner.download.packwiz;
 
 import com.moandjiezana.toml.Toml;
 import me.oganesson.cleaner.api.metadata.IMetadata;
-import me.oganesson.cleaner.download.metadata.CurseMetadata;
-import me.oganesson.cleaner.download.metadata.URLMetadata;
 
 import java.io.File;
 import java.util.HashSet;
@@ -23,10 +21,10 @@ public class PackwizMetadataIndexer {
                 var isCurse = content.getTable("download").getString("mode").contains("curseforge");
                 if (isCurse) {
                     var curse = content.getTable("update.curseforge");
-                    metadata.add(new CurseMetadata(curse.getLong("project-id"), curse.getLong("file-id")));
+                    //metadata.add(new CurseMetadata(curse.getLong("project-id"), curse.getLong("file-id")));
                 } else {
                     var download = content.getTable("download");
-                    metadata.add(new URLMetadata(download.getString("url")));
+                    //metadata.add(new URLMetadata(download.getString("url")));
                 }
             }
         }

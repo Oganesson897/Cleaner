@@ -6,8 +6,8 @@ import java.io.IOException;
 
 public class TestCleanroomCache {
 
-    public static void main(String[] args) throws IOException {
-        CleanroomGetter.downloadToCache("latest");
+    public static void main(String[] args) {
+        System.out.println(CleanroomGetter.processUrl("latest").toString());
     }
 
 }
