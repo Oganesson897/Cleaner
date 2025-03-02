@@ -1,6 +1,5 @@
 package me.oganesson.cleaner.cleanroom;
 
-import me.oganesson.cleaner.Cleaner;
 import me.oganesson.cleaner.ConfigHolder;
 import me.oganesson.cleaner.utils.LogUtil;
 import org.apache.commons.io.FileUtils;
